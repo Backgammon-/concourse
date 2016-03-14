@@ -1,12 +1,12 @@
 /*
  * Copyright (c) 2013-2016 Cinchapi Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -78,14 +78,14 @@ import com.google.common.collect.Sets;
  * The main program runner for the ConcourseShell client. ConcourseShell wraps a
  * connection to a ConcourseServer inside of a {@link GroovyShell}, which allows
  * for rich interaction with Concourse in a scripting environment.
- * 
+ *
  * @author Jeff Nelson
  */
 public final class ConcourseShell {
 
     /**
      * Run the program...
-     * 
+     *
      * @param args
      * @throws Exception
      */
@@ -228,7 +228,7 @@ public final class ConcourseShell {
 
     /**
      * Return a sorted array that contains all the accessible API methods.
-     * 
+     *
      * @return the accessible API methods
      */
     protected static String[] getAccessibleApiMethods() {
@@ -256,22 +256,22 @@ public final class ConcourseShell {
     /**
      * Return {@code true} if {@code string} contains at last one of the
      * {@link #BANNED_CHAR_SEQUENCES} strings.
-     * 
+     *
      * @param string
      * @return {@code true} if string contains a banned character sequence
      */
-    private static boolean containsBannedCharSequence(String string) {
+    private static String containsBannedCharSequence(String string) {
         for (String charSequence : BANNED_CHAR_SEQUENCES) {
             if(string.contains(charSequence)) {
-                return true;
+                return charSequence;
             }
         }
-        return false;
+        return null;
     }
 
     /**
      * Print {@code message} to stderr and exit with a non-zero status.
-     * 
+     *
      * @param message
      */
     private static void die(String message) {
@@ -282,7 +282,7 @@ public final class ConcourseShell {
     /**
      * Return a sorted array that contains all the accessible API methods using
      * short syntax.
-     * 
+     *
      * @return the accessible API methods using short syntax
      */
     private static String[] getAccessibleApiMethodsUsingShortSyntax() {
@@ -299,7 +299,7 @@ public final class ConcourseShell {
 
     /**
      * Return the help text for a given {@code topic}.
-     * 
+     *
      * @param topic
      * @return the help text
      */
@@ -341,7 +341,7 @@ public final class ConcourseShell {
      * be reasonably assumed to be a valid alias of some sort (i.e. an API
      * method name in underscore case as opposed to camel case).
      * </p>
-     * 
+     *
      * @param alias the method name that may be an alias for one of the provided
      *            API methods
      * @return the actual API method that {@code alias} should resolve to, if it
@@ -407,7 +407,7 @@ public final class ConcourseShell {
 
     /**
      * A closure that converts a string value to a tag.
-     * 
+     *
      * @deprecated Use the {@link Tag} class directly as it is imported into the
      *             {@link #groovyBinding} within the {@link #evaluate(String)}
      *             method.
@@ -426,7 +426,7 @@ public final class ConcourseShell {
 
     /**
      * A closure that returns a nwe CriteriaBuilder object.
-     * 
+     *
      * @deprecated Use the {@link Criteria} class directly as it is imported
      *             into the {@link #groovyBinding} within the
      *             {@link #evaluate(String)} method.
@@ -543,7 +543,7 @@ public final class ConcourseShell {
      * Construct a new instance. Be sure to call {@link #setClient(Concourse)}
      * before performing any
      * evaluations.
-     * 
+     *
      * @throws Exception
      */
     protected ConcourseShell() throws Exception {
@@ -558,7 +558,7 @@ public final class ConcourseShell {
      * does not yield a displayable response, a subclass of
      * {@link IrregularEvaluationResult} will be thrown to give the caller and
      * indication of how to proceed.
-     * 
+     *
      * @param input
      * @return the result of the evaluation
      * @throws IrregularEvaluationResult
@@ -601,7 +601,15 @@ public final class ConcourseShell {
         if(script != null) {
             groovyBinding.setVariable(EXTERNAL_SCRIPT_NAME, script);
         }
-        if(inputLowerCase.equalsIgnoreCase("exit")) {
+
+        if(Strings.isNullOrEmpty(input)) { // CON-170
+            throw new NewLineRequest();
+        }
+        String bannedSequence = containsBannedCharSequence(input);
+        if(bannedSequence != null) {
+            throw new EvaluationException(BANNED_CHAR_SEQUENCE_ERROR_MESSAGE + ": " + bannedSequence);
+        }
+        else if(inputLowerCase.equalsIgnoreCase("exit")) {
             throw new ExitRequest();
         }
         else if(inputLowerCase.startsWith("help")
@@ -614,12 +622,6 @@ public final class ConcourseShell {
                 String topic = toks[1];
                 throw new HelpRequest(topic);
             }
-        }
-        else if(containsBannedCharSequence(input)) {
-            throw new EvaluationException(BANNED_CHAR_SEQUENCE_ERROR_MESSAGE);
-        }
-        else if(Strings.isNullOrEmpty(input)) { // CON-170
-            throw new NewLineRequest();
         }
         else {
             StringBuilder result = new StringBuilder();
@@ -680,7 +682,7 @@ public final class ConcourseShell {
 
     /**
      * Return {@code true} if this instance has an external script loaded.
-     * 
+     *
      * @return {@code true} if an external script has been loaded
      */
     public boolean hasExternalScript() {
@@ -691,7 +693,7 @@ public final class ConcourseShell {
      * Load an external script and store it so it can be added to the binding
      * when {@link #evaluate(String) evaluating} commands. Any functions defined
      * in the script must be accessed using the {@code ext} qualifier.
-     * 
+     *
      * @param script - the path to the external script
      */
     public void loadExternalScript(String script) {
@@ -735,7 +737,7 @@ public final class ConcourseShell {
     /**
      * This method calls {@link ConsoleReader#setExpandEvents(boolean)} with the
      * specified value.
-     * 
+     *
      * @param bool
      */
     public void setExpandEvents(boolean bool) {
@@ -793,7 +795,7 @@ public final class ConcourseShell {
 
     /**
      * The options that can be passed to the main method of this script.
-     * 
+     *
      * @author Jeff Nelson
      */
     private static class Options {
@@ -857,7 +859,7 @@ public final class ConcourseShell {
      * Retrieve an instance by calling {@link ErrorCause#determine(String)} on
      * an error message returned from an exception/
      * </p>
-     * 
+     *
      * @author Jeff Nelson
      */
     private enum ErrorCause {
@@ -865,7 +867,7 @@ public final class ConcourseShell {
 
         /**
          * Examine an error message to determine the {@link ErrorCause}.
-         * 
+         *
          * @param message - the error message from an Exception
          * @return the {@link ErrorCause} that summarizes the reason the
          *         Exception occurred
@@ -886,7 +888,7 @@ public final class ConcourseShell {
     /**
      * An enum containing the types of things that can be listed using the
      * 'show' function.
-     * 
+     *
      * @author Jeff Nelson
      */
     private enum Showable {
@@ -894,7 +896,7 @@ public final class ConcourseShell {
 
         /**
          * Return the name of this Showable.
-         * 
+         *
          * @return the name
          */
         public String getName() {
