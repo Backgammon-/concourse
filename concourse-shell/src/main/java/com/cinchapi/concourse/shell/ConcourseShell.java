@@ -699,34 +699,40 @@ public final class ConcourseShell {
     public void loadExternalScript(String script) {
         try {
             Path extPath = Paths.get(script);
-            if(Files.exists(extPath) && Files.size(extPath) > 0) {
-                List<String> lines = FileOps.readLines(script);
-                StringBuilder sb = new StringBuilder();
-                for (String line : lines) {
-                    line = SyntaxTools.handleShortSyntax(line, methods);
-                    sb.append(line)
-                            .append(System.getProperty("line.separator"));
+            if(Files.exists(extPath))
+            {
+                if (Files.size(extPath) > 0) {
+                    List<String> lines = FileOps.readLines(script);
+                    StringBuilder sb = new StringBuilder();
+                    for (String line : lines) {
+                        line = SyntaxTools.handleShortSyntax(line, methods);
+                        sb.append(line)
+                                .append(System.getProperty("line.separator"));
+                    }
+                    String scriptText = sb.toString();
+                    try {
+                        this.script = groovy
+                                .parse(scriptText, EXTERNAL_SCRIPT_NAME);
+                        evaluate(scriptText);
+                    }
+                    catch (IrregularEvaluationResult e) {
+                        System.err.println(e.getMessage());
+                    }
+                    catch (MultipleCompilationErrorsException e) {
+                        String msg = e.getMessage();
+                        msg = msg.substring(msg.indexOf('\n') + 1);
+                        msg = msg.replaceAll("ext: ", "");
+                        die("A fatal error occurred while parsing the run-commands file at "
+                                + script
+                                + System.getProperty("line.separator")
+                                + msg
+                                + System.getProperty("line.separator")
+                                + "Fix these errors or start concourse shell with the --no-run-commands flag");
+                    }
                 }
-                String scriptText = sb.toString();
-                try {
-                    this.script = groovy
-                            .parse(scriptText, EXTERNAL_SCRIPT_NAME);
-                    evaluate(scriptText);
-                }
-                catch (IrregularEvaluationResult e) {
-                    System.err.println(e.getMessage());
-                }
-                catch (MultipleCompilationErrorsException e) {
-                    String msg = e.getMessage();
-                    msg = msg.substring(msg.indexOf('\n') + 1);
-                    msg = msg.replaceAll("ext: ", "");
-                    die("A fatal error occurred while parsing the run-commands file at "
-                            + script
-                            + System.getProperty("line.separator")
-                            + msg
-                            + System.getProperty("line.separator")
-                            + "Fix these errors or start concourse shell with the --no-run-commands flag");
-                }
+            }
+            else {
+                console.println("The specified script file, " + script + ", does not exist.");
             }
         }
         catch (IOException e) {
