@@ -699,8 +699,10 @@ public final class ConcourseShell {
     public void loadExternalScript(String script) {
         try {
             Path extPath = Paths.get(script);
-            if(Files.exists(extPath))
-            {
+            if(!Files.exists(extPath)) {
+                console.println("The specified script file, " + script + ", does not exist.");
+            }
+            else {
                 if (Files.size(extPath) > 0) {
                     List<String> lines = FileOps.readLines(script);
                     StringBuilder sb = new StringBuilder();
@@ -730,9 +732,6 @@ public final class ConcourseShell {
                                 + "Fix these errors or start concourse shell with the --no-run-commands flag");
                     }
                 }
-            }
-            else {
-                console.println("The specified script file, " + script + ", does not exist.");
             }
         }
         catch (IOException e) {
